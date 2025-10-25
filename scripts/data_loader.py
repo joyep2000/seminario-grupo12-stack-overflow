@@ -1,4 +1,4 @@
-# %%
+
 import pandas as pd
 import os
 
@@ -6,7 +6,7 @@ import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # construir la ruta del archivo csv de data
-DATA_PATH = os.path.join(SCRIPT_DIR, "..", "data", "Questions.csv")
+DATA_PATH = os.path.join(SCRIPT_DIR, "..", "data", "tags.csv")
 
 # crear funcion
 def cargar_datos(path):
@@ -38,4 +38,3 @@ if __name__ == "__main__":
         
         print("\n---Informacino del Dataframe---")
         dataframe_quiestions.info(show_counts=True)
-# %%
