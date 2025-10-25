@@ -13,7 +13,7 @@ def cargar_datos(path):
     print(f"Cargando datos desde {path}...")
     
     try:
-        df = pd.read_csv(path)
+        df = pd.read_csv(path, encoding = "latin1")
         print("Datos han sido cargados!!!")
         return df
     except FileNotFoundError:
