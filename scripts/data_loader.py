@@ -38,4 +38,3 @@ if __name__ == "__main__":
         
         print("\n---Informacino del Dataframe---")
         dataframe_quiestions.info(show_counts=True)
-        print("\n---Descripción del Dataframe---")
