@@ -10,7 +10,7 @@ import numpy as np
 import re
 
 # Configurar path
-current_dir = os.path.dirname(os.path.abspath(_file_))
+current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.join(current_dir, '../..')
 sys.path.append(project_root)
 
@@ -584,5 +584,5 @@ if st.sidebar.button("🔄 Recargar Datos"):
     st.cache_data.clear()
     st.rerun()
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     pass
