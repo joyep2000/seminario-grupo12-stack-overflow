@@ -124,7 +124,7 @@ def verificar_estructura_datos(questions_df, tags_df):
     # Análisis de tags por pregunta
     analizar_tags_por_pregunta(tags_df)
 
-if _name_ == "_main_":
+if  __name__ == "__main__":
     # Prueba de la función
     questions, tags = cargar_dataset_stack_overflow()
     if questions is not None and tags is not None:

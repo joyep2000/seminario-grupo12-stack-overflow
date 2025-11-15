@@ -324,7 +324,7 @@ def preparar_datos_analitica_adaptada(questions_df, tags_df):
     return df_completo
 
 # Función principal de prueba
-if _name_ == "_main_":
+if __name__ == "__main__":
     from data_loader import cargar_dataset_stack_overflow
     
     print("🧪 EJECUTANDO PRUEBA DEL SISTEMA DE LIMPIEZA ADAPTADO")
