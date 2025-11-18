@@ -10,7 +10,7 @@ Análisis del Ecosistema de Stack Overflow: Tendencias y Patrones.
 **Integrantes**
 
 Henry Alexander Chulde Malquin
-Johanna Lizbeth Haro Murillo
+Johanna Lizeth Haro Murillo
 Fabian Josue Yepez Gomez de la Torre
 
 ---
