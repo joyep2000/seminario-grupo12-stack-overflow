@@ -3,14 +3,12 @@ import numpy as np
 from datetime import datetime
 
 def limpieza_nombres_columnas(df, dataset_type="generic"):
-    """
-    Adaptado para la estructura real de tus datasets
-    """
+    
     print(f"🧹 Iniciando limpieza de nombres de columnas para {dataset_type}...")
     
-    # Mapeo específico para TU estructura de Stack Overflow
+    # Mapeo específico de la estructura de Stack Overflow
     mapeo_personalizado = {
-        # Questions.csv - TU ESTRUCTURA
+        # Questions.csv 
         "Id": "id",
         "OwnerUserId": "owner_user_id", 
         "CreationDate": "creation_date",
@@ -19,7 +17,7 @@ def limpieza_nombres_columnas(df, dataset_type="generic"):
         "Title": "title",
         "Body": "body",
         
-        # Tags.csv - TU ESTRUCTURA
+        # Tags.csv
         "Tag": "tag"
     }
     
@@ -72,7 +70,7 @@ def convertir_fechas(df):
 
 def limpiar_valores_numericos(df):
     """
-    Limpia y convierte columnas numéricas para TU estructura
+    Limpia y convierte columnas numéricas
     """
     print("🔢 Limpiando valores numéricos...")
     
@@ -101,7 +99,7 @@ def limpiar_valores_numericos(df):
 
 def limpiar_valores_texto(df):
     """
-    Limpia columnas de texto para TU estructura
+    Limpia columnas de texto
     """
     print("📝 Limpiando columnas de texto...")
     
@@ -131,7 +129,7 @@ def procesar_body_texto(df):
         # Calcular longitud del body
         df['body_length'] = df['body'].str.len()
         
-        # Extraer si tiene código (simplificado)
+        # Extraer si tiene código
         df['has_code'] = df['body'].str.contains('<code>|```', case=False, na=False)
         
         # Calcular número de líneas aproximado
@@ -228,9 +226,9 @@ def pipeline_limpieza_completa(df, dataset_type="questions"):
 
 def unir_datasets_adaptada(questions_clean, tags_clean):
     """
-    Une los datasets de Questions y Tags ADAPTADA para TU estructura
+    Une los datasets de Questions y Tags
     """
-    print("\n🔗 UNIENDO DATASETS QUESTIONS Y TAGS (ADAPTADA)")
+    print("\n🔗 UNIENDO DATASETS QUESTIONS Y TAGS")
     print("=" * 50)
     
     # Verificar columnas disponibles
@@ -291,9 +289,9 @@ def unir_datasets_adaptada(questions_clean, tags_clean):
 
 def preparar_datos_analitica_adaptada(questions_df, tags_df):
     """
-    Prepara los datos para el análisis uniendo Questions y Tags - VERSIÓN ADAPTADA
+    Prepara los datos para el análisis uniendo Questions y Tags
     """
-    print("\n🔗 PREPARANDO DATOS PARA ANÁLISIS (ADAPTADA)")
+    print("\n🔗 PREPARANDO DATOS PARA ANÁLISIS")
     print("=" * 50)
     
     # Limpiar ambos datasets
@@ -327,14 +325,14 @@ def preparar_datos_analitica_adaptada(questions_df, tags_df):
 if __name__ == "__main__":
     from data_loader import cargar_dataset_stack_overflow
     
-    print("🧪 EJECUTANDO PRUEBA DEL SISTEMA DE LIMPIEZA ADAPTADO")
+    print("🧪 EJECUTANDO PRUEBA DEL SISTEMA DE LIMPIEZA")
     print("=" * 60)
     
     # Cargar datos
     questions, tags = cargar_dataset_stack_overflow()
     
     if questions is not None and tags is not None:
-        # Probar el pipeline adaptado
+        # Probar el pipeline
         df_completo = preparar_datos_analitica_adaptada(questions, tags)
         
         if df_completo is not None and not df_completo.empty:

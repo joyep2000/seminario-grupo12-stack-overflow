@@ -42,7 +42,7 @@ def debug_file_info(filepath):
         return {"exists": False}
 
 def load_tag_metrics_correctly(filepath):
-    """Carga tag_metrics de manera robusta"""
+    """Carga tag_metrics"""
     try:
         print(f"🔍 Intentando cargar: {filepath}")
         
@@ -105,7 +105,7 @@ def load_processed_data():
         print("📥 CARGANDO DATOS PROCESADOS...")
         print(f"📁 Ruta base: {base_path}")
         
-        # 1. Cargar tag_metrics - CON DEBUG COMPLETO
+        # 1. Cargar tag_metrics
         tag_metrics_path = os.path.join(base_path, 'tag_metrics.csv')
         print(f"🔍 Información de tag_metrics.csv:")
         file_info = debug_file_info(tag_metrics_path)

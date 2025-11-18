@@ -4,7 +4,7 @@ import os
 
 def cargar_datos(ruta_archivo, nombre_dataset="Dataset"):
     """
-    Carga un archivo CSV y retorna un DataFrame con manejo robusto de errores
+    Carga un archivo CSV y retorna un DataFrame
     """
     print(f"📥 Cargando {nombre_dataset} desde {ruta_archivo}...")
     

@@ -201,7 +201,7 @@ if data['stats'] and data['stats'].get('general_statistics'):
             help="Tags promedio por pregunta"
         )
     
-    # Segunda fila de métricas - CORREGIDA
+    # Segunda fila de métricas
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:

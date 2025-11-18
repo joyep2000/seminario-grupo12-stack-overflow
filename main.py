@@ -11,7 +11,7 @@ def print_banner():
     banner = """
     ╔══════════════════════════════════════════════════════════════╗
     ║                                                              ║
-    ║         🎮 SISTEMA DE ANÁLISIS STACK OVERFLOW               ║
+    ║         🎮 SISTEMA DE ANÁLISIS STACK OVERFLOW 🎮            ║
     ║                     GRUPO 12 - SEMINARIO                     ║
     ║                                                              ║
     ╚══════════════════════════════════════════════════════════════╝
@@ -53,10 +53,10 @@ def run_pipeline():
         return False
 
 def run_api_server():
-    """Ejecuta el servidor de la API correctamente"""
+    """Ejecuta el servidor de la API"""
     print("\n🌐 INICIANDO API FASTAPI...")
     try:
-        # Comando corregido para la API
+        # Comando para la API
         api_process = subprocess.Popen([
             sys.executable, "-m", "uvicorn", "src.api.main:app", 
             "--reload", "--host", "0.0.0.0", "--port", "8000"
@@ -203,7 +203,7 @@ def run_complete_system():
             dashboard_process.terminate()
 
 def main():
-    """Función principal del sistema CORREGIDA"""
+    """Función principal del sistema"""
     print_banner()
     
     # Verificar salud del sistema
@@ -215,7 +215,7 @@ def main():
     ensure_directories()
     
     while True:
-        print("\n📋 MENU PRINCIPAL CORREGIDO:")
+        print("\n📋 MENU PRINCIPAL:")
         print("1. Ejecutar Pipeline de Datos (ETL)")
         print("2. Iniciar API FastAPI")
         print("3. Iniciar Dashboard Streamlit")

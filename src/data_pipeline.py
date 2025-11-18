@@ -49,7 +49,7 @@ class StackOverflowPipeline:
         return questions_clean, tags_clean
     
     def merge_datasets(self, questions_clean, tags_clean):
-        """Une los datasets limpios usando la función adaptada"""
+        """Une los datasets limpios"""
         print("\n🔗 UNIENDO DATASETS...")
         
         # Usar la función adaptada directamente
@@ -65,14 +65,14 @@ class StackOverflowPipeline:
         return df_completo
     
     def calculate_metrics(self, df_completo):
-        """Calcula métricas clave para el análisis - VERSIÓN CORREGIDA"""
+        """Calcula métricas clave para el análisis"""
         print("\n📊 CALCULANDO MÉTRICAS DE ANÁLISIS...")
         
         try:
             # DEBUG: Verificar columnas disponibles
             print(f"🔍 Columnas disponibles: {df_completo.columns.tolist()}")
             
-            # 1. Métricas por Tag - VERSIÓN CORREGIDA
+            # 1. Métricas por Tag
             print("   Calculando métricas por tag...")
             
             # Verificar si tenemos tags_string para trabajar
