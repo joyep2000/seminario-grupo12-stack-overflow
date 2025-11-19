@@ -54,6 +54,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# URL base de la API en Google Cloud
+API_BASE_URL = "https://api-stack-overflow-grupo12-964545988140.us-central1.run.app"
+
 # Función para parsear fechas del date_range
 def parse_date_range(date_range_str):
     """Parsear el string date_range de manera segura"""
@@ -79,7 +82,7 @@ def parse_date_range(date_range_str):
 
 # Título principal
 st.markdown('<h1 class="main-header">🔍 Stack Overflow Analytics Dashboard</h1>', unsafe_allow_html=True)
-st.markdown("*Análisis de tendencias y patrones en el ecosistema de desarrollo - Grupo 12*")
+st.markdown("**Análisis de tendencias y patrones en el ecosistema de desarrollo - Grupo 12**")
 st.markdown("---")
 
 # Sidebar para configuración
@@ -90,7 +93,7 @@ st.sidebar.header("⚙️ Configuración del Sistema")
 def check_api_health():
     """Verificar estado de la API"""
     try:
-        response = requests.get("http://localhost:8000/health", timeout=10)
+        response = requests.get(f"{API_BASE_URL}/health", timeout=10)
         if response.status_code == 200:
             data = response.json()
             return True, data
@@ -105,15 +108,15 @@ def load_all_data_from_api():
     """Cargar todos los datos desde la API"""
     try:
         # 1. Cargar stats generales
-        stats_response = requests.get("http://localhost:8000/stats", timeout=15)
+        stats_response = requests.get(f"{API_BASE_URL}/stats", timeout=15)
         stats_data = stats_response.json() if stats_response.status_code == 200 else {}
         
         # 2. Cargar top tags (más tags para mejor análisis)
-        tags_response = requests.get("http://localhost:8000/tags/top?limit=100", timeout=15)
+        tags_response = requests.get(f"{API_BASE_URL}/tags/top?limit=100", timeout=15)
         tags_data = tags_response.json() if tags_response.status_code == 200 else {}
         
         # 3. Cargar top questions
-        questions_response = requests.get("http://localhost:8000/questions/top?limit=50", timeout=15)
+        questions_response = requests.get(f"{API_BASE_URL}/questions/top?limit=50", timeout=15)
         questions_data = questions_response.json() if questions_response.status_code == 200 else {}
         
         return {
@@ -138,11 +141,9 @@ if api_healthy:
         st.sidebar.info(f"🔥 Top preguntas: {stats.get('top_questions', 0):,}")
 else:
     st.sidebar.error("❌ API No disponible")
-    st.sidebar.markdown("""
-    *Para conectar la API:*
-    bash
-    uvicorn src.api.main:app --reload --port 8000
-    
+    st.sidebar.markdown(f"""
+    **API desplegada en:** 
+    `{API_BASE_URL}`
     """)
 
 # Cargar datos
@@ -150,12 +151,12 @@ data = load_all_data_from_api() if api_healthy else {'stats': {}, 'tags': [], 'q
 
 # Mostrar advertencia si no hay datos
 if not api_healthy:
-    st.markdown("""
+    st.markdown(f"""
     <div class="warning-box">
         <h3>⚠️ API No Disponible</h3>
-        <p>Para usar el dashboard, primero inicia la API ejecutando:</p>
-        <code>uvicorn src.api.main:app --reload --port 8000</code>
-        <p>Luego actualiza esta página.</p>
+        <p>No se puede conectar a la API en:</p>
+        <code>{API_BASE_URL}</code>
+        <p>Verifica que la API esté ejecutándose correctamente en Google Cloud.</p>
     </div>
     """, unsafe_allow_html=True)
     st.stop()
@@ -246,7 +247,6 @@ if data['stats'] and data['stats'].get('general_statistics'):
 else:
     st.warning("No se pudieron cargar las estadísticas generales")
 
-# Las demás secciones se mantienen igual...
 # Sección 2: Top Tecnologías
 st.header("🏆 Top Tecnologías Más Populares")
 
@@ -341,7 +341,7 @@ st.header("📈 Evolución Temporal de Tecnologías")
 def load_temporal_data(tag_name):
     """Cargar datos temporales para un tag específico"""
     try:
-        response = requests.get(f"http://localhost:8000/tags/{tag_name}/timeseries", timeout=15)
+        response = requests.get(f"{API_BASE_URL}/tags/{tag_name}/timeseries", timeout=15)
         if response.status_code == 200:
             return response.json()
         return None
@@ -447,7 +447,7 @@ if data['tags']:
                                     avg_questions = tag_data['count'].mean()
                                     
                                     st.metric(
-                                        label=f"*{tag}*",
+                                        label=f"**{tag}**",
                                         value=f"{int(total_questions):,}",
                                         delta=f"Peak: {int(max_questions):,}"
                                     )
@@ -485,23 +485,23 @@ if data['questions']:
                 col_left, col_right = st.columns([3, 1])
                 
                 with col_left:
-                    st.write(f"*ID:* {question.get('id', 'N/A')}")
+                    st.write(f"**ID:** {question.get('id', 'N/A')}")
                     
                     # Mostrar tags
                     if question.get('tags_string'):
-                        st.write(f"*Tags:* {question['tags_string']}")
+                        st.write(f"**Tags:** {question['tags_string']}")
                     
                     if question.get('tags_count'):
-                        st.write(f"*Número de tags:* {question['tags_count']}")
+                        st.write(f"**Número de tags:** {question['tags_count']}")
                     
                     # Mostrar fecha
                     if question.get('creation_date'):
-                        st.write(f"*Fecha:* {question['creation_date']}")
+                        st.write(f"**Fecha:** {question['creation_date']}")
                     
                     # Mostrar título completo si es diferente del truncado
                     title = question.get('title', '')
                     if len(title) > 120:
-                        st.write(f"*Título completo:* {title}")
+                        st.write(f"**Título completo:** {title}")
                 
                 with col_right:
                     st.metric("Score", question.get('score', 0))
@@ -520,7 +520,7 @@ st.header("🔍 Búsqueda de Tecnologías")
 def search_tags_api(query):
     """Buscar tags mediante API"""
     try:
-        response = requests.get(f"http://localhost:8000/tags/search?query={query}&limit=15", timeout=10)
+        response = requests.get(f"{API_BASE_URL}/tags/search?query={query}&limit=15", timeout=10)
         if response.status_code == 200:
             return response.json().get('data', [])
         return []
@@ -542,14 +542,14 @@ if search_query and search_query.strip():
         for idx, result in enumerate(search_results):
             with cols[idx % 2]:
                 with st.container():
-                    st.markdown(f"*{result.get('tag', 'N/A')}*")
-                    st.write(f"*Preguntas:* {result.get('question_count', 0):,}")
+                    st.markdown(f"**{result.get('tag', 'N/A')}**")
+                    st.write(f"**Preguntas:** {result.get('question_count', 0):,}")
                     
                     if result.get('avg_score'):
-                        st.write(f"*Score promedio:* {result['avg_score']:.2f}")
+                        st.write(f"**Score promedio:** {result['avg_score']:.2f}")
                     
                     if result.get('match_type'):
-                        st.write(f"*Tipo de coincidencia:* {result['match_type']}")
+                        st.write(f"**Tipo de coincidencia:** {result['match_type']}")
                     
                     st.markdown("---")
     elif search_query.strip():
@@ -557,11 +557,12 @@ if search_query and search_query.strip():
 
 # Footer
 st.markdown("---")
-st.markdown("""
+st.markdown(f"""
 <div style='text-align: center'>
     <p><strong>Stack Overflow Analytics Dashboard</strong> · Grupo 12</p>
     <p>Datos de <a href="https://www.kaggle.com/datasets/stackoverflow/stacksample" target="_blank">Stack Overflow Dataset</a> · 
     Desarrollado con Python, FastAPI y Streamlit</p>
+    <p><small>API: {API_BASE_URL}</small></p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -571,7 +572,7 @@ st.sidebar.header("ℹ️ Información")
 st.sidebar.info("""
 Este dashboard analiza datos de Stack Overflow para identificar tendencias tecnológicas.
 
-*Características:*
+**Características:**
 - Top tecnologías por preguntas
 - Evolución temporal comparativa  
 - Preguntas más populares
