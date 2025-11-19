@@ -341,7 +341,7 @@ st.header("📈 Evolución Temporal de Tecnologías")
 def load_temporal_data(tag_name):
     """Cargar datos temporales para un tag específico"""
     try:
-        response = requests.get(f"http://localhost:8000/tags/{tag_name}/timeseries", timeout=15)
+        response = requests.get(f"{API_BASE_URL}/tags/{tag_name}/timeseries", timeout=15)
         if response.status_code == 200:
             return response.json()
         return None
@@ -429,7 +429,7 @@ if data['tags']:
                                     avg_questions = tag_data['count'].mean()
                                     
                                     st.metric(
-                                        label=f"*{tag}*",
+                                        label=f"**{tag}**",
                                         value=f"{int(total_questions):,}",
                                         delta=f"Peak: {int(max_questions):,}"
                                     )
@@ -464,23 +464,23 @@ if data['questions']:
                 col_left, col_right = st.columns([3, 1])
                 
                 with col_left:
-                    st.write(f"*ID:* {question.get('id', 'N/A')}")
+                    st.write(f"**ID:** {question.get('id', 'N/A')}")
                     
                     # Mostrar tags
                     if question.get('tags_string'):
-                        st.write(f"*Tags:* {question['tags_string']}")
+                        st.write(f"**Tags:** {question['tags_string']}")
                     
                     if question.get('tags_count'):
-                        st.write(f"*Número de tags:* {question['tags_count']}")
+                        st.write(f"**Número de tags:** {question['tags_count']}")
                     
                     # Mostrar fecha
                     if question.get('creation_date'):
-                        st.write(f"*Fecha:* {question['creation_date']}")
+                        st.write(f"**Fecha:** {question['creation_date']}")
                     
                     # Mostrar título completo si es diferente del truncado
                     title = question.get('title', '')
                     if len(title) > 120:
-                        st.write(f"*Título completo:* {title}")
+                        st.write(f"**Título completo:** {title}")
                 
                 with col_right:
                     st.metric("Score", question.get('score', 0))
@@ -498,7 +498,7 @@ st.header("🔍 Búsqueda de Tecnologías")
 def search_tags_api(query):
     """Buscar tags mediante API"""
     try:
-        response = requests.get(f"http://localhost:8000/tags/search?query={query}&limit=15", timeout=10)
+        response = requests.get(f"{API_BASE_URL}/tags/search?query={query}&limit=15", timeout=10)
         if response.status_code == 200:
             return response.json().get('data', [])
         return []
@@ -517,14 +517,14 @@ if search_query and search_query.strip():
         for idx, result in enumerate(search_results):
             with cols[idx % 2]:
                 with st.container():
-                    st.markdown(f"*{result.get('tag', 'N/A')}*")
-                    st.write(f"*Preguntas:* {result.get('question_count', 0):,}")
+                    st.markdown(f"**{result.get('tag', 'N/A')}**")
+                    st.write(f"**Preguntas:** {result.get('question_count', 0):,}")
                     
                     if result.get('avg_score'):
-                        st.write(f"*Score promedio:* {result['avg_score']:.2f}")
+                        st.write(f"**Score promedio:** {result['avg_score']:.2f}")
                     
                     if result.get('match_type'):
-                        st.write(f"*Tipo de coincidencia:* {result['match_type']}")
+                        st.write(f"**Tipo de coincidencia:** {result['match_type']}")
                     
                     st.markdown("---")
     elif search_query.strip():
@@ -537,6 +537,7 @@ st.markdown(f"""
     <p><strong>Stack Overflow Analytics Dashboard</strong> · Grupo 12</p>
     <p>Datos de <a href="https://www.kaggle.com/datasets/stackoverflow/stacksample" target="_blank">Stack Overflow Dataset</a> · 
     Desarrollado con Python, FastAPI y Streamlit</p>
+    <p><small>API: {API_BASE_URL}</small></p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -546,7 +547,7 @@ st.sidebar.header("ℹ️ Información")
 st.sidebar.info("""
 Este dashboard analiza datos de Stack Overflow para identificar tendencias tecnológicas.
 
-*Características:*
+**Características:**
 - Top tecnologías por preguntas
 - Evolución temporal comparativa  
 - Preguntas más populares
