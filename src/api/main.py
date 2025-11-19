@@ -1,10 +1,12 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Path
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import pandas as pd
 import os
 import sys
 from datetime import datetime
+import numpy as np
+from typing import Optional
 
 # Configurar path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -206,6 +208,7 @@ async def health_check():
     tags_loaded = not data['tag_metrics'].empty
     questions_loaded = not data['top_questions'].empty
     stats_loaded = len(data['general_stats']) > 0
+    time_series_loaded = not data['time_series'].empty
     
     status = "healthy" if (tags_loaded or questions_loaded) else "partial"
     
@@ -216,7 +219,8 @@ async def health_check():
         "components": {
             "tag_metrics": tags_loaded,
             "top_questions": questions_loaded,
-            "general_stats": stats_loaded
+            "general_stats": stats_loaded,
+            "time_series": time_series_loaded
         },
         "data_stats": {
             "tags_count": len(data['tag_metrics']),
@@ -302,7 +306,6 @@ async def get_top_tags(
         "data": result
     }
 
-# Los otros endpoints se mantienen igual...
 @app.get("/tags/search")
 async def search_tags(
     query: str = Query(..., description="Texto a buscar en tags"),
@@ -339,6 +342,129 @@ async def search_tags(
         "query": query,
         "results_found": len(results),
         "data": results
+    }
+
+@app.get("/tags/{tag}/timeseries")
+async def get_tag_timeseries(
+    tag: str = Path(..., description="Nombre del tag a analizar", example="python"),
+    start_date: Optional[str] = Query(None, description="Fecha inicio (YYYY-MM-DD)", example="2010-01-01"),
+    end_date: Optional[str] = Query(None, description="Fecha fin (YYYY-MM-DD)", example="2015-12-31"),
+    aggregation: str = Query("monthly", description="Agregación temporal", example="monthly")
+):
+    """
+    Obtiene series temporales para un tag específico
+    
+    - **tag**: Nombre del tag a analizar (ej: python, javascript, java)
+    - **start_date**: Fecha de inicio del análisis (opcional)
+    - **end_date**: Fecha de fin del análisis (opcional)  
+    - **aggregation**: Tipo de agregación (monthly, quarterly, yearly)
+    """
+    if not data or data['time_series'].empty:
+        raise HTTPException(
+            status_code=404, 
+            detail="Datos de series temporales no disponibles. Ejecute el pipeline de datos primero."
+        )
+    
+    time_series = data['time_series']
+    
+    # Verificar que tenemos las columnas necesarias
+    required_columns = ['tag', 'date', 'count']
+    missing_columns = [col for col in required_columns if col not in time_series.columns]
+    
+    if missing_columns:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Estructura de series temporales incorrecta. Columnas: {time_series.columns.tolist()}"
+        )
+    
+    # Filtrar por tag
+    tag_data = time_series[time_series['tag'] == tag].copy()
+    
+    if tag_data.empty:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No se encontraron datos temporales para el tag: {tag}"
+        )
+    
+    # Filtrar por rango de fechas si se proporciona
+    if start_date:
+        try:
+            start_dt = pd.to_datetime(start_date)
+            tag_data = tag_data[tag_data['date'] >= start_dt]
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Formato de fecha inicio inválido. Use YYYY-MM-DD")
+    
+    if end_date:
+        try:
+            end_dt = pd.to_datetime(end_date)
+            tag_data = tag_data[tag_data['date'] <= end_dt]
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Formato de fecha fin inválido. Use YYYY-MM-DD")
+    
+    # Aplicar agregación
+    if aggregation == "yearly":
+        tag_data['period'] = tag_data['date'].dt.year
+        aggregated = tag_data.groupby('period').agg({
+            'count': 'sum',
+            'date': 'min'
+        }).reset_index()
+        aggregated['period_label'] = aggregated['period'].astype(str)
+        
+    elif aggregation == "quarterly":
+        tag_data['year'] = tag_data['date'].dt.year
+        tag_data['quarter'] = tag_data['date'].dt.quarter
+        tag_data['period'] = tag_data['year'].astype(str) + '-Q' + tag_data['quarter'].astype(str)
+        aggregated = tag_data.groupby('period').agg({
+            'count': 'sum',
+            'date': 'min'
+        }).reset_index()
+        aggregated['period_label'] = aggregated['period']
+        
+    else:  # monthly (default)
+        tag_data['period'] = tag_data['date'].dt.to_period('M')
+        aggregated = tag_data.groupby('period').agg({
+            'count': 'sum',
+            'date': 'min'
+        }).reset_index()
+        aggregated['period_label'] = aggregated['period'].astype(str)
+    
+    # Ordenar por fecha
+    aggregated = aggregated.sort_values('date')
+    
+    # Formatear respuesta
+    result_data = []
+    for _, row in aggregated.iterrows():
+        result_data.append({
+            "period": row['period_label'],
+            "date": row['date'].strftime('%Y-%m-%d'),
+            "count": int(row['count'])
+        })
+    
+    # Calcular estadísticas
+    total_questions = aggregated['count'].sum()
+    max_count = aggregated['count'].max()
+    avg_count = aggregated['count'].mean()
+    
+    # Encontrar periodo pico
+    peak_period = aggregated.loc[aggregated['count'].idxmax()]
+    
+    return {
+        "tag": tag,
+        "aggregation": aggregation,
+        "date_range": {
+            "start": tag_data['date'].min().strftime('%Y-%m-%d'),
+            "end": tag_data['date'].max().strftime('%Y-%m-%d')
+        },
+        "statistics": {
+            "total_questions": int(total_questions),
+            "average_per_period": float(avg_count),
+            "peak_period": {
+                "period": peak_period['period_label'],
+                "count": int(peak_period['count'])
+            },
+            "max_questions": int(max_count)
+        },
+        "data": result_data
     }
 
 @app.get("/questions/top")
@@ -408,6 +534,7 @@ async def get_general_stats():
     
     stats = data['general_stats']
     tag_metrics = data['tag_metrics']
+    time_series = data['time_series']
     
     # Calcular estadísticas adicionales
     additional_stats = {}
@@ -420,9 +547,28 @@ async def get_general_stats():
                 additional_stats["most_popular_tag"] = most_popular.index[0]
                 additional_stats["most_popular_count"] = int(most_popular.iloc[0]['question_count'])
     
+    if not time_series.empty:
+        additional_stats["time_series_coverage"] = {
+            "total_records": len(time_series),
+            "unique_tags": time_series['tag'].nunique(),
+            "date_range": {
+                "min": time_series['date'].min().strftime('%Y-%m-%d'),
+                "max": time_series['date'].max().strftime('%Y-%m-%d')
+            } if 'date' in time_series.columns else {}
+        }
+    
     return {
         "general_statistics": stats,
-        "additional_metrics": additional_stats
+        "additional_metrics": additional_stats,
+        "system_info": {
+            "data_loaded": True,
+            "last_updated": datetime.now().isoformat(),
+            "datasets_available": {
+                "tag_metrics": not data['tag_metrics'].empty,
+                "time_series": not data['time_series'].empty,
+                "top_questions": not data['top_questions'].empty
+            }
+        }
     }
 
 @app.get("/debug/data-structure")
@@ -441,12 +587,14 @@ async def debug_data_structure():
         "time_series": {
             "loaded": not data['time_series'].empty,
             "row_count": len(data['time_series']),
-            "columns": data['time_series'].columns.tolist() if not data['time_series'].empty else []
+            "columns": data['time_series'].columns.tolist() if not data['time_series'].empty else [],
+            "sample": data['time_series'].head(3).to_dict('records') if not data['time_series'].empty else []
         },
         "top_questions": {
             "loaded": not data['top_questions'].empty,
             "row_count": len(data['top_questions']),
-            "columns": data['top_questions'].columns.tolist() if not data['top_questions'].empty else []
+            "columns": data['top_questions'].columns.tolist() if not data['top_questions'].empty else [],
+            "sample": data['top_questions'].head(3).to_dict('records') if not data['top_questions'].empty else []
         },
         "general_stats": data['general_stats']
     }
