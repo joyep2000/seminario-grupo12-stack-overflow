@@ -65,13 +65,6 @@ st.markdown("""
 # URL base de la API en Google Cloud
 API_BASE_URL = "https://api-stack-overflow-grupo12-964545988140.us-central1.run.app"
 
-# Configuración de requests para mejor manejo de conexiones
-session = requests.Session()
-session.headers.update({
-    'User-Agent': 'StackOverflow-Dashboard/1.0',
-    'Accept': 'application/json'
-})
-
 # Función para parsear fechas del date_range
 def parse_date_range(date_range_str):
     """Parsear el string date_range de manera segura"""
@@ -106,28 +99,16 @@ st.sidebar.header("⚙️ Configuración del Sistema")
 # Verificar estado de la API con mejor manejo de errores
 @st.cache_data(ttl=300)
 def check_api_health():
-    """Verificar estado de la API con reintentos"""
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            response = session.get(f"{API_BASE_URL}/health", timeout=15)
-            if response.status_code == 200:
-                data = response.json()
-                return True, data
-            else:
-                st.sidebar.warning(f"Intento {attempt + 1}: API respondió con código {response.status_code}")
-        except requests.exceptions.Timeout:
-            st.sidebar.warning(f"Intento {attempt + 1}: Timeout al conectar con la API")
-        except requests.exceptions.ConnectionError:
-            st.sidebar.warning(f"Intento {attempt + 1}: Error de conexión con la API")
-        except Exception as e:
-            st.sidebar.warning(f"Intento {attempt + 1}: Error inesperado: {str(e)}")
-        
-        # Esperar antes del siguiente intento
-        if attempt < max_retries - 1:
-            time.sleep(2)
-    
-    return False, {}
+    """Verificar estado de la API"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/health", timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            return True, data
+        else:
+            return False, {}
+    except requests.exceptions.RequestException as e:
+        return False, {}
 
 # Cargar TODOS los datos de la API con mejor manejo de errores
 @st.cache_data(ttl=600)
@@ -141,31 +122,22 @@ def load_all_data_from_api():
     
     try:
         # 1. Cargar stats generales
-        with st.spinner("Cargando estadísticas generales..."):
-            stats_response = session.get(f"{API_BASE_URL}/stats", timeout=20)
-            if stats_response.status_code == 200:
-                all_data['stats'] = stats_response.json()
-            else:
-                st.error(f"Error cargando stats: {stats_response.status_code}")
+        stats_response = requests.get(f"{API_BASE_URL}/stats", timeout=15)
+        stats_data = stats_response.json() if stats_response.status_code == 200 else {}
         
-        # 2. Cargar top tags
-        with st.spinner("Cargando tecnologías..."):
-            tags_response = session.get(f"{API_BASE_URL}/tags/top?limit=50", timeout=20)
-            if tags_response.status_code == 200:
-                tags_data = tags_response.json()
-                all_data['tags'] = tags_data.get('data', [])
-            else:
-                st.error(f"Error cargando tags: {tags_response.status_code}")
+        # 2. Cargar top tags (más tags para mejor análisis)
+        tags_response = requests.get(f"{API_BASE_URL}/tags/top?limit=100", timeout=15)
+        tags_data = tags_response.json() if tags_response.status_code == 200 else {}
         
         # 3. Cargar top questions
-        with st.spinner("Cargando preguntas..."):
-            questions_response = session.get(f"{API_BASE_URL}/questions/top?limit=30", timeout=20)
-            if questions_response.status_code == 200:
-                questions_data = questions_response.json()
-                all_data['questions'] = questions_data.get('data', [])
-            else:
-                st.error(f"Error cargando questions: {questions_response.status_code}")
-                
+        questions_response = requests.get(f"{API_BASE_URL}/questions/top?limit=50", timeout=15)
+        questions_data = questions_response.json() if questions_response.status_code == 200 else {}
+        
+        return {
+            'stats': stats_data,
+            'tags': tags_data.get('data', []),
+            'questions': questions_data.get('data', [])
+        }
     except Exception as e:
         st.error(f"Error crítico cargando datos: {e}")
     
@@ -185,42 +157,21 @@ if api_healthy:
 else:
     st.sidebar.error("❌ API No disponible")
     st.sidebar.markdown(f"""
-    <div class="info-box">
-        <p><strong>API desplegada en:</strong></p>
-        <code>{API_BASE_URL}</code>
-        <p><small>Problemas comunes en Streamlit Cloud:</small></p>
-        <ul>
-            <li><small>Timeout de conexión</small></li>
-            <li><small>Restricciones de red</small></li>
-            <li><small>La API puede estar escalando</small></li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+    **API desplegada en:** 
+    `{API_BASE_URL}`
+    """)
 
-# Mostrar información de conexión
-with st.sidebar.expander("🔧 Debug de Conexión"):
-    st.write(f"**URL de la API:** {API_BASE_URL}")
-    st.write(f"**API saludable:** {api_healthy}")
-    if health_info:
-        st.write("**Respuesta de health:**", health_info)
+# Cargar datos
+data = load_all_data_from_api() if api_healthy else {'stats': {}, 'tags': [], 'questions': []}
 
-# Cargar datos solo si la API está saludable
-if api_healthy:
-    with st.spinner("🔄 Cargando datos desde la API..."):
-        data = load_all_data_from_api()
-else:
-    data = {'stats': {}, 'tags': [], 'questions': []}
-    st.markdown("""
+# Mostrar advertencia si no hay datos
+if not api_healthy:
+    st.markdown(f"""
     <div class="warning-box">
-        <h3>⚠️ No se pudo conectar a la API</h3>
-        <p>El dashboard no puede cargar datos porque no hay conexión con la API.</p>
-        <p><strong>Solución:</strong></p>
-        <ol>
-            <li>Verifica que la API esté ejecutándose en Google Cloud Run</li>
-            <li>Revisa los logs de la API para errores</li>
-            <li>Intenta recargar la página</li>
-            <li>Contacta al administrador del sistema</li>
-        </ol>
+        <h3>⚠️ API No Disponible</h3>
+        <p>No se puede conectar a la API en:</p>
+        <code>{API_BASE_URL}</code>
+        <p>Verifica que la API esté ejecutándose correctamente en Google Cloud.</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -390,7 +341,7 @@ st.header("📈 Evolución Temporal de Tecnologías")
 def load_temporal_data(tag_name):
     """Cargar datos temporales para un tag específico"""
     try:
-        response = session.get(f"{API_BASE_URL}/tags/{tag_name}/timeseries", timeout=20)
+        response = requests.get(f"http://localhost:8000/tags/{tag_name}/timeseries", timeout=15)
         if response.status_code == 200:
             return response.json()
         return None
@@ -464,6 +415,25 @@ if data['tags']:
                         
                         fig_line.update_layout(height=500, showlegend=True)
                         chart_placeholder.plotly_chart(fig_line, use_container_width=True)
+                        
+                        # Mostrar métricas por tecnología
+                        st.subheader("📈 Métricas por Tecnología")
+                        metrics_cols = st.columns(min(len(selected_tags), 4))
+                        
+                        for idx, tag in enumerate(selected_tags):
+                            tag_data = combined_df[combined_df['tag'] == tag]
+                            if not tag_data.empty:
+                                with metrics_cols[idx % len(metrics_cols)]:
+                                    total_questions = tag_data['count'].sum()
+                                    max_questions = tag_data['count'].max()
+                                    avg_questions = tag_data['count'].mean()
+                                    
+                                    st.metric(
+                                        label=f"*{tag}*",
+                                        value=f"{int(total_questions):,}",
+                                        delta=f"Peak: {int(max_questions):,}"
+                                    )
+                                    st.caption(f"Promedio: {avg_questions:.1f} preguntas/mes")
                     else:
                         st.info("No hay datos para el rango seleccionado")
                 else:
@@ -494,11 +464,23 @@ if data['questions']:
                 col_left, col_right = st.columns([3, 1])
                 
                 with col_left:
-                    st.write(f"**ID:** {question.get('id', 'N/A')}")
+                    st.write(f"*ID:* {question.get('id', 'N/A')}")
+                    
+                    # Mostrar tags
                     if question.get('tags_string'):
-                        st.write(f"**Tags:** {question['tags_string']}")
+                        st.write(f"*Tags:* {question['tags_string']}")
+                    
+                    if question.get('tags_count'):
+                        st.write(f"*Número de tags:* {question['tags_count']}")
+                    
+                    # Mostrar fecha
                     if question.get('creation_date'):
-                        st.write(f"**Fecha:** {question['creation_date']}")
+                        st.write(f"*Fecha:* {question['creation_date']}")
+                    
+                    # Mostrar título completo si es diferente del truncado
+                    title = question.get('title', '')
+                    if len(title) > 120:
+                        st.write(f"*Título completo:* {title}")
                 
                 with col_right:
                     st.metric("Score", question.get('score', 0))
@@ -516,7 +498,7 @@ st.header("🔍 Búsqueda de Tecnologías")
 def search_tags_api(query):
     """Buscar tags mediante API"""
     try:
-        response = session.get(f"{API_BASE_URL}/tags/search?query={query}&limit=10", timeout=15)
+        response = requests.get(f"http://localhost:8000/tags/search?query={query}&limit=15", timeout=10)
         if response.status_code == 200:
             return response.json().get('data', [])
         return []
@@ -534,11 +516,17 @@ if search_query and search_query.strip():
         cols = st.columns(2)
         for idx, result in enumerate(search_results):
             with cols[idx % 2]:
-                st.markdown(f"**{result.get('tag', 'N/A')}**")
-                st.write(f"Preguntas: {result.get('question_count', 0):,}")
-                if result.get('avg_score'):
-                    st.write(f"Score promedio: {result['avg_score']:.2f}")
-                st.markdown("---")
+                with st.container():
+                    st.markdown(f"*{result.get('tag', 'N/A')}*")
+                    st.write(f"*Preguntas:* {result.get('question_count', 0):,}")
+                    
+                    if result.get('avg_score'):
+                        st.write(f"*Score promedio:* {result['avg_score']:.2f}")
+                    
+                    if result.get('match_type'):
+                        st.write(f"*Tipo de coincidencia:* {result['match_type']}")
+                    
+                    st.markdown("---")
     elif search_query.strip():
         st.warning("No se encontraron resultados")
 
@@ -547,12 +535,26 @@ st.markdown("---")
 st.markdown(f"""
 <div style='text-align: center'>
     <p><strong>Stack Overflow Analytics Dashboard</strong> · Grupo 12</p>
-    <p>Datos de Stack Overflow · Desarrollado con Python, FastAPI y Streamlit</p>
-    <p><small>Conectado a: {API_BASE_URL}</small></p>
+    <p>Datos de <a href="https://www.kaggle.com/datasets/stackoverflow/stacksample" target="_blank">Stack Overflow Dataset</a> · 
+    Desarrollado con Python, FastAPI y Streamlit</p>
 </div>
 """, unsafe_allow_html=True)
 
-# Botón para recargar
+# Información adicional en sidebar
+st.sidebar.markdown("---")
+st.sidebar.header("ℹ️ Información")
+st.sidebar.info("""
+Este dashboard analiza datos de Stack Overflow para identificar tendencias tecnológicas.
+
+*Características:*
+- Top tecnologías por preguntas
+- Evolución temporal comparativa  
+- Preguntas más populares
+- Búsqueda de tecnologías
+- Métricas agregadas
+""")
+
+# Botón para recargar datos
 if st.sidebar.button("🔄 Recargar Datos"):
     st.cache_data.clear()
     st.rerun()
