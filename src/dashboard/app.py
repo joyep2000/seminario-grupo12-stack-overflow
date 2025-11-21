@@ -534,7 +534,7 @@ if search_query and search_query.strip():
 st.markdown("---")
 st.markdown(f"""
 <div style='text-align: center'>
-    <p><strong>Stack Overflow Analytics Dashboard</strong> · Grupo 12</p>
+    <p><strong>Seminario Stack Overflow Analytics Dashboard</strong> · Grupo 12</p>
     <p>Datos de <a href="https://www.kaggle.com/datasets/stackoverflow/stacksample" target="_blank">Stack Overflow Dataset</a> · 
     Desarrollado con Python, FastAPI y Streamlit</p>
     <p><small>API: {API_BASE_URL}</small></p>
